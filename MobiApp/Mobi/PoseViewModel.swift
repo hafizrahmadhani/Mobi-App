@@ -12,7 +12,7 @@ import Vision
 
 class PoseViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     
-    @Published var angleText: String = "Mulai Bergerak"
+    @Published var angleText: String = "Start Moving!"
     @Published var detectedJoints: [VNHumanBodyPoseObservation.JointName : CGPoint] = [:]
     @Published var sideToMeasure: ShoulderSide
     
@@ -41,7 +41,7 @@ class PoseViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
             }
         default:
             DispatchQueue.main.async {
-                self.angleText = "Izin kamera ditolak"
+                self.angleText = "Camera Access Denied"
             }
         }
     }
@@ -55,7 +55,7 @@ class PoseViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         captureSession.sessionPreset = .high
         
         guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) else {
-            DispatchQueue.main.async { self.angleText = "Kamera depan tidak ada" }
+            DispatchQueue.main.async { self.angleText = "Front Camera not Found" }
             return
         }
         
@@ -77,8 +77,8 @@ class PoseViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
             }
             
         } catch {
-            print("Error setup kamera: \(error.localizedDescription)")
-            DispatchQueue.main.async { self.angleText = "Error kamera" }
+            print("Camera Setup Error \(error.localizedDescription)")
+            DispatchQueue.main.async { self.angleText = "Camera Error" }
         }
     }
     
@@ -97,7 +97,7 @@ class PoseViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         do {
             try handler.perform([visionRequest])
         } catch {
-            print("Gagal perform Vision request: \(error)")
+            print("Failed to perform Vision request: \(error)")
         }
     }
     
@@ -142,7 +142,7 @@ class PoseViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                   let leftWrist = recognizedPoints[.leftWrist],
                   leftHip.confidence > 0.1 && leftShoulder.confidence > 0.1 && leftWrist.confidence > 0.1 else {
                 
-                DispatchQueue.main.async { self.angleText = "Posisikan Bahu Kiri" }
+                DispatchQueue.main.async { self.angleText = "Left shoulder in Position" }
                 return
             }
             
@@ -155,7 +155,7 @@ class PoseViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                   let rightWrist = recognizedPoints[.rightWrist],
                   rightHip.confidence > 0.1 && rightShoulder.confidence > 0.1 && rightWrist.confidence > 0.1 else {
                 
-                DispatchQueue.main.async { self.angleText = "Posisikan Bahu Kanan" }
+                DispatchQueue.main.async { self.angleText = "Right shoulder in Position" }
                 return
             }
             

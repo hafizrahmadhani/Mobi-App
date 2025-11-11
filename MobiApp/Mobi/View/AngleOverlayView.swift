@@ -24,7 +24,7 @@ struct AngleOverlayView: View {
 
 struct AngleOverlayView_Previews: PreviewProvider {
     static var previews: some View {
-        AngleOverlayView(angleText: "Contoh: 180°")
+        AngleOverlayView(angleText: "Example: 180°")
             .background(Color.gray)
     }
 }

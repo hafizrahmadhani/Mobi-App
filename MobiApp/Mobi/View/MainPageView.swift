@@ -13,10 +13,25 @@ struct MainPageView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Mobi")
+            Text("Welcome to Mobi")
                 .font(.largeTitle)
                 .fontWeight(.bold)
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [Color(hex: "2C7FCF"), Color(hex: "F15E32")],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .padding(.top)
                 .padding(.horizontal)
+            
+            Text("Your journey to better movement starts here.")
+                .font(.headline)
+                .foregroundStyle(Color(hex: "#3C3C43")).opacity(0.6)
+                .padding(.horizontal)
+                .padding(.bottom, 5)
+            
             
             HStack(spacing: 10) {
                 VStack(spacing: 20){
