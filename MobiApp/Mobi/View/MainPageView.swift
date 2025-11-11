@@ -10,6 +10,7 @@ import SwiftUI
 struct MainPageView: View {
     
     @State private var selectedSide: ShoulderSide?
+    @EnvironmentObject var historyViewModel: HistoryViewModel
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -86,8 +87,39 @@ struct MainPageView: View {
                 .fontWeight(.bold)
                 .padding(.horizontal)
             
-            
-            Spacer()
+            if historyViewModel.historyItems.isEmpty {
+                VStack {
+                    Spacer()
+                    Text("No history yet.")
+                        .font(.headline)
+                        .foregroundColor(.gray)
+                    Text("Start a new measurement to see your progress.")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity) // Isi sisa space
+                
+            } else {
+                
+                // --- KODE GRID HANYA JIKA TIDAK KOSONG ---
+                
+                let columns = [
+                    GridItem(.flexible(), spacing: 16),
+                    GridItem(.flexible(), spacing: 16)
+                ]
+                
+                ScrollView(.vertical, showsIndicators: false) {
+                    LazyVGrid(columns: columns, spacing: 16) {
+                        ForEach(historyViewModel.historyItems) { item in
+                            HistoryCardView(item: item)
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom)
+                }
+                .frame(maxWidth: .infinity)
+            }
         }
         .navigationDestination(item: $selectedSide) { side in
             PoseMeasurementView(side: side)
@@ -101,5 +133,6 @@ struct MainPageView: View {
 #Preview {
     NavigationStack {
         MainPageView()
+            .environmentObject(HistoryViewModel())
     }
 }

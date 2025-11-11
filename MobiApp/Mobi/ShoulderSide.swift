@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum ShoulderSide: Hashable {
+enum ShoulderSide: String, Hashable, Codable {
     case left
     case right
 }

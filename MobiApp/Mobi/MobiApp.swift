@@ -13,20 +13,30 @@ struct MobiApp: App {
     @AppStorage("hasSeenOnboarding") var hasSeenOnboarding = false
     
     @State private var splashScreen = true
+    @StateObject private var historyViewModel = HistoryViewModel()
     
     var body: some Scene {
         WindowGroup {
-            if splashScreen {
-                SplashScreenView(isFirst: $splashScreen)
-            }else {
-                NavigationStack {
-                    if hasSeenOnboarding {
-                        MainPageView()
-                    } else {
-                        AuthorizationPageView()
+            // --- MULAI PERBAIKAN ---
+            
+            // 1. Bungkus semua logika di dalam Group
+            Group {
+                if splashScreen {
+                    SplashScreenView(isFirst: $splashScreen)
+                } else {
+                    NavigationStack {
+                        if hasSeenOnboarding {
+                            MainPageView()
+                        } else {
+                            AuthorizationPageView()
+                        }
                     }
                 }
             }
+            // 2. Terapkan environmentObject ke Group
+            .environmentObject(historyViewModel)
+            
+            // --- AKHIR PERBAIKAN ---
         }
     }
 }
