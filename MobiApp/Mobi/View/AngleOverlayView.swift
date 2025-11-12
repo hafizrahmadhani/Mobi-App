@@ -18,7 +18,7 @@ struct AngleOverlayView: View {
             .padding(12)
             .background(Color(hex: "#F15E32")).opacity(1)
             .cornerRadius(10)
-            .padding(.bottom, 30)
+            .padding(.bottom, 40)
     }
 }
 

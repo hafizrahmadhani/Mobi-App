@@ -107,13 +107,16 @@ struct MainPageView: View {
                         
                     } else {
                         let columns = [
-                            GridItem(.flexible(), spacing: 16),
-                            GridItem(.flexible(), spacing: 16)
+                            GridItem(.flexible(), spacing: 10),
+                            GridItem(.flexible(), spacing: 10)
                         ]
                         
                         LazyVGrid(columns: columns, spacing: 16) {
                             ForEach(historyViewModel.historyItems) { item in
-                                HistoryCardView(item: item)
+                                NavigationLink(value: item) {
+                                    HistoryCardView(item: item)
+                                }
+                                .buttonStyle(PlainButtonStyle())
                             }
                         }
                         .padding(.horizontal)
@@ -124,6 +127,9 @@ struct MainPageView: View {
         }
         .navigationDestination(item: $selectedSide) { side in
             PoseMeasurementView(side: side)
+        }
+        .navigationDestination(for: HistoryItem.self) { item in
+            HistoryDetailView(item: item)
         }
         .navigationBarBackButtonHidden(true)
         .appBackground()
