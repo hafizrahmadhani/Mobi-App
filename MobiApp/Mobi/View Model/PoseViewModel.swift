@@ -10,16 +10,32 @@ import Combine
 import AVFoundation
 import Vision
 
+import SwiftUI
+import Combine
+import AVFoundation
+import Vision
+
 class PoseViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     
-    @Published var angleText: String = "Mulai Bergerak"
+    @Published var angleText: String = "Start Moving!"
     @Published var detectedJoints: [VNHumanBodyPoseObservation.JointName : CGPoint] = [:]
     @Published var sideToMeasure: ShoulderSide
     
     let captureSession = AVCaptureSession()
     private var videoOutput: AVCaptureVideoDataOutput!
     private var visionRequest: VNDetectHumanBodyPoseRequest!
+    let capturePublisher = PassthroughSubject<(UIImage, [VNHumanBodyPoseObservation.JointName : CGPoint], Int), Never>()
     
+    private var lastAngle: CGFloat?
+    private var stabilityCounter: Int = 0
+    private let stabilityThreshold: Int = 60
+    
+    private var hasCaptured: Bool = false
+    private var captureTriggered: Bool = false
+    private var currentStableAngle: Int = 0
+    private let context = CIContext()
+    private var jointsToCapture: [VNHumanBodyPoseObservation.JointName : CGPoint] = [:]
+    private var angleToCapture: Int = 0
     
     init(sideToMeasure: ShoulderSide) {
         self.sideToMeasure = sideToMeasure
@@ -41,7 +57,7 @@ class PoseViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
             }
         default:
             DispatchQueue.main.async {
-                self.angleText = "Izin kamera ditolak"
+                self.angleText = "Camera Access Denied"
             }
         }
     }
@@ -55,7 +71,7 @@ class PoseViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         captureSession.sessionPreset = .high
         
         guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) else {
-            DispatchQueue.main.async { self.angleText = "Kamera depan tidak ada" }
+            DispatchQueue.main.async { self.angleText = "Front Camera not Found" }
             return
         }
         
@@ -77,8 +93,8 @@ class PoseViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
             }
             
         } catch {
-            print("Error setup kamera: \(error.localizedDescription)")
-            DispatchQueue.main.async { self.angleText = "Error kamera" }
+            print("Camera Setup Error \(error.localizedDescription)")
+            DispatchQueue.main.async { self.angleText = "Camera Error" }
         }
     }
     
@@ -90,14 +106,39 @@ class PoseViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
-        let orientation = CGImagePropertyOrientation.right
-        let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer,
-                                            orientation: orientation,
-                                            options: [:])
-        do {
-            try handler.perform([visionRequest])
-        } catch {
-            print("Gagal perform Vision request: \(error)")
+        
+        if captureTriggered && !hasCaptured {
+            captureTriggered = false
+            hasCaptured = true
+            
+            let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
+            
+            guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else {
+                return
+            }
+            
+            let image = UIImage(cgImage: cgImage, scale: 1.0, orientation: .right)
+            guard let flippedImage = image.flippedHorizontally() else { return }
+            
+            let joints = self.jointsToCapture
+            let angle = self.angleToCapture
+            
+            DispatchQueue.main.async {
+                self.capturePublisher.send((flippedImage, joints, angle))
+                self.stopSession()
+            }
+        }
+        
+        if !hasCaptured {
+            let orientation = CGImagePropertyOrientation.right
+            let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer,
+                                                orientation: orientation,
+                                                options: [:])
+            do {
+                try handler.perform([visionRequest])
+            } catch {
+                print("Failed to perform Vision request: \(error)")
+            }
         }
     }
     
@@ -106,7 +147,6 @@ class PoseViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
               let observation = observations.first else {
             return
         }
-        
         processObservation(observation)
     }
     
@@ -117,7 +157,7 @@ class PoseViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
             }
             return
         }
-       
+        
         let jointsToDraw: [VNHumanBodyPoseObservation.JointName]
         if sideToMeasure == .left {
             jointsToDraw = [.leftShoulder, .leftElbow, .leftWrist]
@@ -136,18 +176,20 @@ class PoseViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
             self.detectedJoints = currentJoints
         }
         
+        let angle: CGFloat
+        
         if sideToMeasure == .left {
             guard let leftHip = recognizedPoints[.leftHip],
                   let leftShoulder = recognizedPoints[.leftShoulder],
                   let leftWrist = recognizedPoints[.leftWrist],
                   leftHip.confidence > 0.1 && leftShoulder.confidence > 0.1 && leftWrist.confidence > 0.1 else {
                 
-                DispatchQueue.main.async { self.angleText = "Posisikan Bahu Kiri" }
+                DispatchQueue.main.async { self.angleText = "Left shoulder in Position" }
+                self.stabilityCounter = 0
+                self.lastAngle = nil
                 return
             }
-            
-            let angle = calculateAngle(p1: leftHip.location, p2: leftShoulder.location, p3: leftWrist.location)
-            DispatchQueue.main.async { self.angleText = "Left: \(Int(angle))°" }
+            angle = calculateAngle(p1: leftHip.location, p2: leftShoulder.location, p3: leftWrist.location)
             
         } else {
             guard let rightHip = recognizedPoints[.rightHip],
@@ -155,12 +197,40 @@ class PoseViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                   let rightWrist = recognizedPoints[.rightWrist],
                   rightHip.confidence > 0.1 && rightShoulder.confidence > 0.1 && rightWrist.confidence > 0.1 else {
                 
-                DispatchQueue.main.async { self.angleText = "Posisikan Bahu Kanan" }
+                DispatchQueue.main.async { self.angleText = "Right shoulder in Position" }
+                self.stabilityCounter = 0
+                self.lastAngle = nil
                 return
             }
+            angle = calculateAngle(p1: rightHip.location, p2: rightShoulder.location, p3: rightWrist.location)
+        }
+        
+        let roundedAngle = Int(angle)
+        
+        DispatchQueue.main.async {
+            if !self.hasCaptured {
+                self.angleText = "\(self.sideToMeasure == .left ? "Left" : "Right"): \(roundedAngle)°"
+            }
+        }
+        
+        if abs(angle - (lastAngle ?? 0)) < 2.0 {
+            stabilityCounter += 1
+        } else {
+            stabilityCounter = 0
+        }
+        lastAngle = angle
+        
+        if stabilityCounter > stabilityThreshold && !hasCaptured && angle > 15.0 {
             
-            let angle = calculateAngle(p1: rightHip.location, p2: rightShoulder.location, p3: rightWrist.location)
-            DispatchQueue.main.async { self.angleText = "Right: \(Int(angle))°" }
+            self.angleToCapture = roundedAngle
+            self.jointsToCapture = self.detectedJoints
+            
+            self.currentStableAngle = roundedAngle
+            self.captureTriggered = true
+            
+            DispatchQueue.main.async {
+                self.angleText = "Hold it... \(roundedAngle)°"
+            }
         }
     }
     

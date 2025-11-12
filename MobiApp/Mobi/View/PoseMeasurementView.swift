@@ -12,6 +12,9 @@ struct PoseMeasurementView: View {
     let side: ShoulderSide
     @StateObject private var viewModel: PoseViewModel
     
+    @EnvironmentObject var historyViewModel: HistoryViewModel
+    @Environment(\.presentationMode) var presentationMode
+    
     init(side: ShoulderSide) {
         self.side = side
         _viewModel = StateObject(wrappedValue: PoseViewModel(sideToMeasure: side))
@@ -45,9 +48,44 @@ struct PoseMeasurementView: View {
             viewModel.stopSession()
         }
         .navigationBarBackButtonHidden(false)
+        .onReceive(viewModel.capturePublisher) { (rawImage, joints, angle) in
+            
+            let originalSize = rawImage.size
+            let targetRatio: CGFloat = 3.0 / 4.0
+            let newHeight = originalSize.width / targetRatio
+            let newSize = CGSize(width: originalSize.width, height: newHeight)
+            let snapshotView = ZStack {
+                
+                Image(uiImage: rawImage)
+                    .resizable()
+                    .scaledToFill()
+                
+                JointView(joints: joints)
+                    .frame(width: originalSize.width, height: originalSize.height)
+                    .scaledToFill()
+            }
+                .frame(width: newSize.width, height: newSize.height, alignment: .center)
+                .clipped()
+                .ignoresSafeArea()
+            
+            let finalImage = snapshotView.snapshot(size: newSize)
+            
+            historyViewModel.addHistory(
+                image: finalImage,
+                side: self.side,
+                angle: angle
+            )
+            
+            viewModel.angleText = "Captured: \(angle)°!"
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                presentationMode.wrappedValue.dismiss()
+            }
+        }
     }
 }
 
 #Preview {
     PoseMeasurementView(side: .left)
+        .environmentObject(HistoryViewModel())
 }
