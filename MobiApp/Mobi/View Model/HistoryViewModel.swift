@@ -12,55 +12,37 @@ import Combine
 class HistoryViewModel: ObservableObject {
     
     @Published var historyItems: [HistoryItem] = []
-    
-    // URL untuk menyimpan data
     private var historyURL: URL
     private var imagesDirectoryURL: URL
     
     init() {
-        // Tentukan lokasi folder Documents
         let fileManager = FileManager.default
         guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
             fatalError("Cannot access Documents folder.")
         }
         
-        // 1. Tentukan path untuk file JSON
         self.historyURL = documentsDirectory.appendingPathComponent("history.json")
-        
-        // 2. Tentukan path untuk folder gambar
         self.imagesDirectoryURL = documentsDirectory.appendingPathComponent("HistoryImages")
         
-        // 3. Buat folder gambar jika belum ada
         if !fileManager.fileExists(atPath: imagesDirectoryURL.path) {
             try? fileManager.createDirectory(at: imagesDirectoryURL, withIntermediateDirectories: true, attributes: nil)
         }
         
-        // 4. Muat data saat app dibuka
         loadHistory()
         
-        // loadMockData() // Hapus atau jadikan komentar
     }
     
-    // --- FUNGSI BARU UNTUK MENYIMPAN ---
-    
-    // Fungsi ini dipanggil dari PoseMeasurementView
     func addHistory(image: UIImage, side: ShoulderSide, angle: Int) {
-        
-        // 1. Buat nama file unik untuk gambar
         let fileName = UUID().uuidString + ".jpg"
         let fileURL = imagesDirectoryURL.appendingPathComponent(fileName)
         
-        // 2. Ubah UIImage ke data JPEG
         guard let data = image.jpegData(compressionQuality: 0.8) else {
             print("Failed to convert image to JPEG")
             return
         }
         
-        // 3. Tulis data gambar ke file
         do {
             try data.write(to: fileURL)
-            
-            // 4. Buat HistoryItem baru dengan nama file
             let newItem = HistoryItem(
                 id: UUID(),
                 date: Date(),
@@ -69,7 +51,6 @@ class HistoryViewModel: ObservableObject {
                 imageFileName: fileName
             )
             
-            // 5. Tambahkan ke array & simpan
             DispatchQueue.main.async {
                 self.historyItems.insert(newItem, at: 0)
                 self.saveHistory()
@@ -80,11 +61,9 @@ class HistoryViewModel: ObservableObject {
         }
     }
     
-    // --- FUNGSI HELPER UNTUK SAVE/LOAD ---
-    
     private func saveHistory() {
         let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601 // Format tanggal yang standar
+        encoder.dateEncodingStrategy = .iso8601
         
         do {
             let data = try encoder.encode(historyItems)
@@ -111,9 +90,6 @@ class HistoryViewModel: ObservableObject {
         }
     }
     
-    // --- FUNGSI HELPER UNTUK CARD VIEW ---
-    
-    // Fungsi ini akan dipanggil oleh HistoryCardView
     func loadImage(fileName: String) -> UIImage? {
         let fileURL = imagesDirectoryURL.appendingPathComponent(fileName)
         guard let data = try? Data(contentsOf: fileURL) else {
@@ -122,6 +98,4 @@ class HistoryViewModel: ObservableObject {
         }
         return UIImage(data: data)
     }
-    
-    // ... (Hapus fungsi loadMockData() atau sesuaikan) ...
 }

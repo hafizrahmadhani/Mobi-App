@@ -13,8 +13,7 @@ struct PoseMeasurementView: View {
     @StateObject private var viewModel: PoseViewModel
     
     @EnvironmentObject var historyViewModel: HistoryViewModel
-        // 2. Akses presentationMode untuk kembali (dismiss)
-        @Environment(\.presentationMode) var presentationMode
+    @Environment(\.presentationMode) var presentationMode
     
     init(side: ShoulderSide) {
         self.side = side
@@ -49,52 +48,36 @@ struct PoseMeasurementView: View {
             viewModel.stopSession()
         }
         .navigationBarBackButtonHidden(false)
-        // ... di PoseMeasurementView.swift
-
         .onReceive(viewModel.capturePublisher) { (rawImage, joints, angle) in
             
-            let originalSize = rawImage.size // misal: 1080x1920 (9:16)
-            
-            // 1. Tentukan ukuran target 3:4
-            let targetRatio: CGFloat = 3.0 / 4.0 // 0.75
-            let newHeight = originalSize.width / targetRatio // 1080 / 0.75 = 1440
-            let newSize = CGSize(width: originalSize.width, height: newHeight) // 1080x1440
-            
-            // 2. Buat "Snapshot View" (Ukuran 3:4)
+            let originalSize = rawImage.size
+            let targetRatio: CGFloat = 3.0 / 4.0
+            let newHeight = originalSize.width / targetRatio
+            let newSize = CGSize(width: originalSize.width, height: newHeight)
             let snapshotView = ZStack {
                 
-                // 1. Gambar Background
                 Image(uiImage: rawImage)
                     .resizable()
-                    .scaledToFill() // <-- INI PENTING
+                    .scaledToFill()
                 
-                // 2. Overlay Joint
                 JointView(joints: joints)
-                    // Beri ukuran asli 9:16
                     .frame(width: originalSize.width, height: originalSize.height)
-                    // Terapkan transform Yg SAMA agar pas
-                    .scaledToFill() // <-- INI PENTING
+                    .scaledToFill()
             }
-            // "Jendela" snapshot kita adalah 3:4
-            .frame(width: newSize.width, height: newSize.height, alignment: .center)
-            .clipped()
-            .ignoresSafeArea()
-
+                .frame(width: newSize.width, height: newSize.height, alignment: .center)
+                .clipped()
+                .ignoresSafeArea()
             
-            // 3. Ambil Snapshot (Gunakan fungsi dari View+Snapshot.swift)
             let finalImage = snapshotView.snapshot(size: newSize)
             
-            // 4. PANGGIL FUNGSI BARU HISTORYVIEWMODEL
             historyViewModel.addHistory(
                 image: finalImage,
                 side: self.side,
                 angle: angle
             )
             
-            // 5. Beri feedback
             viewModel.angleText = "Captured: \(angle)°!"
             
-            // 6. Kembali ke MainPageView
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                 presentationMode.wrappedValue.dismiss()
             }

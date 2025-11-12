@@ -17,9 +17,6 @@ struct MobiApp: App {
     
     var body: some Scene {
         WindowGroup {
-            // --- MULAI PERBAIKAN ---
-            
-            // 1. Bungkus semua logika di dalam Group
             Group {
                 if splashScreen {
                     SplashScreenView(isFirst: $splashScreen)
@@ -33,10 +30,7 @@ struct MobiApp: App {
                     }
                 }
             }
-            // 2. Terapkan environmentObject ke Group
             .environmentObject(historyViewModel)
-            
-            // --- AKHIR PERBAIKAN ---
         }
     }
 }
