@@ -42,7 +42,7 @@ struct OnboardingView: View {
                 .font(.system(size: 32, weight: .bold))
                 .frame(maxWidth: .infinity, alignment: .center)
                 .multilineTextAlignment(.center)
-                .padding(.top, 40)
+                .padding(.top, 50)
                 .padding(.bottom, 40)
                 .padding(.horizontal, 30)
             

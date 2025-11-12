@@ -112,7 +112,7 @@ struct MainPageView: View {
                         ]
                         
                         LazyVGrid(columns: columns, spacing: 16) {
-                            ForEach(historyViewModel.historyItems) { item in
+                            ForEach(historyViewModel.historyItems.prefix(10)) { item in
                                 NavigationLink(value: item) {
                                     HistoryCardView(item: item)
                                 }
