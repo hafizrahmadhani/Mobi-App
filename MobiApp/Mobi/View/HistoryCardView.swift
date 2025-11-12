@@ -31,14 +31,14 @@ struct HistoryCardView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(item.date, formatter: dateFormatter)
                     .font(.caption)
-                    .foregroundColor(.white.opacity(0.8))
+                    .foregroundStyle(.white)
                 
                 Text(item.side == .left ? "Left Shoulder" : "Right Shoulder")
-                    .font(.headline)
+                    .font(.subheadline)
                     .fontWeight(.bold)
                     .foregroundColor(.white)
                 
-                (Text(Image(systemName: "angle")) + Text("\(item.angle)°"))
+                Text("\(Image(systemName: "angle"))\(item.angle)°")
                     .font(.subheadline)
                     .fontWeight(.semibold)
                     .foregroundStyle(.white)
@@ -58,7 +58,6 @@ struct HistoryCardView: View {
     private var dateFormatter: DateFormatter {
         let formatter = DateFormatter()
         formatter.dateFormat = "d MMM yyyy"
-        formatter.doesRelativeDateFormatting = true
         return formatter
     }
 }
