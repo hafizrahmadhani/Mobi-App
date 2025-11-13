@@ -7,7 +7,6 @@
 
 import SwiftUI
 
-
 struct BackgroundImageModifier: ViewModifier {
     
     func body(content: Content) -> some View {
