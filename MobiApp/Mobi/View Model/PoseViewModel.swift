@@ -10,11 +10,6 @@ import Combine
 import AVFoundation
 import Vision
 
-import SwiftUI
-import Combine
-import AVFoundation
-import Vision
-
 class PoseViewModel: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     
     @Published var angleText: String = "Start Moving!"
