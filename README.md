@@ -1,4 +1,4 @@
-# Mobi App - Human Pose Detection
+# Mobi App - Shoulder Pose Detection
 
 **Mobi App** is an **individual project** developed for the "Americano" (Challenge 2) at the **Apple Developer Academy @ UNINA**. This app was built solo, not as part of a team.
 
