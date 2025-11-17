@@ -11,6 +11,8 @@ import Vision
 struct JointView: View {
     let joints: [VNHumanBodyPoseObservation.JointName : CGPoint]
     
+    let videoAspectRatio: CGFloat
+    
     private let jointRadius: CGFloat = 8
     private let lineColor = Color(red: 241/255, green: 94/255, blue: 50/255).opacity(0.8)
     private let jointColor = Color(red: 44/255, green: 127/255, blue: 207/255).opacity(0.8)
@@ -23,25 +25,47 @@ struct JointView: View {
     
     var body: some View {
         Canvas { context, size in
-            func transformedPoint(from visionPoint: CGPoint) -> CGPoint {
-                return CGPoint(
-                    x: (1.0 - visionPoint.x) * size.width,
-                    y: (1.0 - visionPoint.y) * size.height
-                )
+            let viewWidth = size.width
+            let viewHeight = size.height
+            let viewAR = viewWidth / viewHeight
+            
+            var xform: (CGPoint) -> CGPoint
+            
+            if viewAR > videoAspectRatio {
+                let scaledVideoHeight = viewWidth / videoAspectRatio
+                let yCropPixels = (scaledVideoHeight - viewHeight) / 2.0
+                
+                xform = { visionPoint in
+                    let x = (1.0 - visionPoint.x) * viewWidth
+                    let y_full = (1.0 - visionPoint.y) * scaledVideoHeight
+                    let y = y_full - yCropPixels
+                    return CGPoint(x: x, y: y)
+                }
+                
+            } else {
+                let scaledVideoWidth = viewHeight * videoAspectRatio
+                let xCropPixels = (scaledVideoWidth - viewWidth) / 2.0
+                
+                xform = { visionPoint in
+                    let x_full = (1.0 - visionPoint.x) * scaledVideoWidth
+                    let x = x_full - xCropPixels
+                    let y = (1.0 - visionPoint.y) * viewHeight
+                    return CGPoint(x: x, y: y)
+                }
             }
             
             for segment in bodySegments {
                 var path = Path()
                 
                 if let firstJointName = segment.first, let firstJoint = joints[firstJointName] {
-                    let p = transformedPoint(from: firstJoint)
+                    let p = xform(firstJoint)
                     path.move(to: p)
                 }
                 
                 for i in 1..<segment.count {
                     let jointName = segment[i]
                     if let joint = joints[jointName] {
-                        let p = transformedPoint(from: joint)
+                        let p = xform(joint)
                         path.addLine(to: p)
                     }
                 }
@@ -49,7 +73,7 @@ struct JointView: View {
             }
             
             for (_, jointPoint) in joints {
-                let p = transformedPoint(from: jointPoint)
+                let p = xform(jointPoint)
                 let circle = Path(ellipseIn: CGRect(x: p.x - jointRadius, y: p.y - jointRadius, width: jointRadius * 2, height: jointRadius * 2))
                 context.fill(circle, with: .color(jointColor))
             }
@@ -65,7 +89,7 @@ struct JointView: View {
         .leftWrist: CGPoint(x: 0.1, y: 0.7)
     ]
     
-    return JointView(joints: exampleJoints)
+    return JointView(joints: exampleJoints, videoAspectRatio: 3.0/4.0)
         .frame(width: 300, height: 400)
         .background(Color.gray)
 }

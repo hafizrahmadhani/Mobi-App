@@ -26,7 +26,7 @@ struct PoseMeasurementView: View {
                 Spacer()
                 ZStack {
                     CameraPreviewView(session: viewModel.captureSession)
-                    JointView(joints: viewModel.detectedJoints)
+                    JointView(joints: viewModel.detectedJoints, videoAspectRatio: 9.0 / 16.0)
                 }
                 .aspectRatio(CGSize(width: 3, height: 4), contentMode: .fit)
                 .frame(width: geometry.size.width)
@@ -51,6 +51,7 @@ struct PoseMeasurementView: View {
         .onReceive(viewModel.capturePublisher) { (rawImage, joints, angle) in
             
             let originalSize = rawImage.size
+            let actualVideoRatio = originalSize.width / originalSize.height
             let targetRatio: CGFloat = 3.0 / 4.0
             let newHeight = originalSize.width / targetRatio
             let newSize = CGSize(width: originalSize.width, height: newHeight)
@@ -60,7 +61,7 @@ struct PoseMeasurementView: View {
                     .resizable()
                     .scaledToFill()
                 
-                JointView(joints: joints)
+                JointView(joints: joints, videoAspectRatio: actualVideoRatio)
                     .frame(width: originalSize.width, height: originalSize.height)
                     .scaledToFill()
             }
